@@ -36,11 +36,11 @@ public final class TaskCli {
 
     private void show(Path historyPath) {
         var result = TaskViews.load(historyPath);
-        if (result instanceof TaskLoadResult.EmptyHistory) {
+        if (TaskCliSupport.isEmpty(result)) {
             System.out.println("No verified task history.");
             return;
         }
-        TaskView view = ((TaskLoadResult.Loaded) result).view();
+        TaskView view = TaskCliSupport.requireLoaded(result);
         System.out.println("taskId=" + view.snapshot().state().id());
         System.out.println("status=" + view.snapshot().state().status());
         System.out.println("nextMoves=" + view.snapshot().nextMoves());
@@ -48,22 +48,23 @@ public final class TaskCli {
 
     private void next(Path historyPath) {
         var result = TaskViews.load(historyPath);
-        if (result instanceof TaskLoadResult.EmptyHistory) {
+        if (TaskCliSupport.isEmpty(result)) {
             System.out.println("No verified task history.");
             return;
         }
-        TaskView view = ((TaskLoadResult.Loaded) result).view();
+        TaskView view = TaskCliSupport.requireLoaded(result);
         System.out.println("actions=" + view.snapshot().actions());
     }
 
     private void history(Path historyPath) {
         var result = TaskViews.load(historyPath);
-        if (result instanceof TaskLoadResult.EmptyHistory empty) {
+        if (TaskCliSupport.isEmpty(result)) {
+            var empty = (TaskLoadResult.EmptyHistory) result;
             System.out.println("verified=" + empty.verifiedHistory());
             System.out.println("decoded=" + empty.decodedEvents());
             return;
         }
-        TaskView view = ((TaskLoadResult.Loaded) result).view();
+        TaskView view = TaskCliSupport.requireLoaded(result);
         System.out.println("verified=" + view.verifiedHistory());
         System.out.println("decoded=" + view.decodedEvents());
     }
@@ -78,11 +79,11 @@ public final class TaskCli {
         try {
             TaskEvent newEvent = TaskApplications.apply(historyPath, actionName);
             var result = TaskViews.load(historyPath);
-            if (result instanceof TaskLoadResult.EmptyHistory) {
+            if (TaskCliSupport.isEmpty(result)) {
                 System.out.println("No verified task history.");
                 return;
             }
-            TaskView updatedView = ((TaskLoadResult.Loaded) result).view();
+            TaskView updatedView = TaskCliSupport.requireLoaded(result);
 
             System.out.println("appended=" + newEvent);
             System.out.println("state=" + updatedView.snapshot().state());
