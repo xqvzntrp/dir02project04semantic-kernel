@@ -1,2 +1,4 @@
-.codex
+build/
+out/
 *.class
+.codex
