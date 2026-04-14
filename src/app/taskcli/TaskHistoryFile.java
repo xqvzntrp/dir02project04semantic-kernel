@@ -10,6 +10,7 @@ import java.util.List;
 import task.domain.TaskCompleted;
 import task.domain.TaskCreated;
 import task.domain.TaskEvent;
+import task.domain.TaskReopened;
 import task.domain.TaskStarted;
 
 public final class TaskHistoryFile {
@@ -56,6 +57,9 @@ public final class TaskHistoryFile {
         }
         if (event instanceof TaskCompleted) {
             return "TaskCompleted";
+        }
+        if (event instanceof TaskReopened) {
+            return "TaskReopened";
         }
         throw new IllegalArgumentException("unsupported task event: " + event.getClass().getName());
     }

@@ -36,7 +36,14 @@ public final class TaskDomainKernel {
                 TaskStatus.COMPLETED,
                 List.of(),
                 false,
-                true)
+                true),
+            new TransitionRule<>(
+                "reopen",
+                Set.of(TaskStatus.COMPLETED),
+                TaskStatus.IN_PROGRESS,
+                List.of(),
+                false,
+                false)
         ));
     }
 }

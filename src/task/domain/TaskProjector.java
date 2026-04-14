@@ -42,6 +42,14 @@ public final class TaskProjector implements Projector<TaskState, TaskEvent> {
                 continue;
             }
 
+            if (event instanceof TaskReopened) {
+                if (state.status() != TaskStatus.COMPLETED) {
+                    throw new IllegalStateException("task can only reopen from COMPLETED");
+                }
+                state = new TaskState(state.id(), TaskStatus.IN_PROGRESS);
+                continue;
+            }
+
             throw new IllegalStateException("unknown task event: " + event.getClass().getName());
         }
 

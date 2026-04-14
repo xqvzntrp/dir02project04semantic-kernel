@@ -6,6 +6,7 @@ import java.util.List;
 import task.domain.TaskCompleted;
 import task.domain.TaskCreated;
 import task.domain.TaskEvent;
+import task.domain.TaskReopened;
 import task.domain.TaskStarted;
 
 public final class TaskEventChainDecoder {
@@ -26,6 +27,7 @@ public final class TaskEventChainDecoder {
             case "TaskCreated" -> new TaskCreated(taskId);
             case "TaskStarted" -> new TaskStarted(taskId);
             case "TaskCompleted" -> new TaskCompleted(taskId);
+            case "TaskReopened" -> new TaskReopened(taskId);
             default -> throw new IllegalArgumentException(
                 "unsupported task event type: " + verifiedEvent.eventType());
         };

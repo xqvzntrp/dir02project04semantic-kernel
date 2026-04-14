@@ -109,7 +109,11 @@ public final class TaskCli {
             System.out.println("state=" + updatedView.snapshot().state());
             System.out.println("nextMoves=" + updatedView.snapshot().nextMoves());
         } catch (IllegalStateException e) {
-            System.out.println("No verified task history.");
+            if ("no verified task history".equals(e.getMessage())) {
+                System.out.println("No verified task history.");
+                return;
+            }
+            throw e;
         }
     }
 

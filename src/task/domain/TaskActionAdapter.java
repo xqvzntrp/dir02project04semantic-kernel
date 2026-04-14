@@ -30,6 +30,7 @@ public final class TaskActionAdapter
         return switch (action.eventName()) {
             case "start" -> new TaskStarted(taskId);
             case "complete" -> new TaskCompleted(taskId);
+            case "reopen" -> new TaskReopened(taskId);
             default -> throw new IllegalArgumentException("unsupported action: " + action.eventName());
         };
     }
