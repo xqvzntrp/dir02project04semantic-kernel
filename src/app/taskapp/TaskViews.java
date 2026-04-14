@@ -18,15 +18,17 @@ public final class TaskViews {
     private TaskViews() {
     }
 
-    public static TaskView load(Path historyFile) {
+    public static TaskLoadResult load(Path historyFile) {
         try {
             List<VerifiedFieldEvent> verifiedHistory = loadVerifiedHistory(historyFile);
             List<TaskEvent> decodedEvents = decodeTaskEvents(verifiedHistory);
             if (decodedEvents.isEmpty()) {
-                return new TaskView(verifiedHistory, decodedEvents, null);
+                return new TaskLoadResult.EmptyHistory(verifiedHistory, decodedEvents);
             }
             var snapshot = taskKernel().analyze(decodedEvents);
-            return new TaskView(verifiedHistory, decodedEvents, snapshot);
+            return new TaskLoadResult.Loaded(
+                new TaskView(verifiedHistory, decodedEvents, snapshot)
+            );
         } catch (IOException e) {
             throw new IllegalStateException("failed to read history file: " + historyFile, e);
         }

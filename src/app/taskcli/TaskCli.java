@@ -1,20 +1,16 @@
 package app.taskcli;
 
+import app.taskapp.TaskApplications;
+import app.taskapp.TaskLoadResult;
 import app.taskapp.TaskView;
 import app.taskapp.TaskViews;
 import java.io.IOException;
 import java.nio.file.Path;
-import java.util.List;
-import task.domain.TaskAction;
-import task.domain.TaskActionAdapter;
 import task.domain.TaskEvent;
 
 public final class TaskCli {
 
     private static final Path DEFAULT_HISTORY_PATH = Path.of("samples/eventchain/task-history.verified");
-
-    private final TaskHistoryFile historyFile = new TaskHistoryFile();
-    private final TaskActionAdapter actionAdapter = new TaskActionAdapter();
 
     public static void main(String[] args) throws IOException {
         new TaskCli().run(args);
@@ -39,28 +35,35 @@ public final class TaskCli {
     }
 
     private void show(Path historyPath) {
-        TaskView view = TaskViews.load(historyPath);
-        if (view.snapshot() == null) {
+        var result = TaskViews.load(historyPath);
+        if (result instanceof TaskLoadResult.EmptyHistory) {
             System.out.println("No verified task history.");
             return;
         }
+        TaskView view = ((TaskLoadResult.Loaded) result).view();
         System.out.println("taskId=" + view.snapshot().state().id());
         System.out.println("status=" + view.snapshot().state().status());
         System.out.println("nextMoves=" + view.snapshot().nextMoves());
     }
 
     private void next(Path historyPath) {
-        TaskView view = TaskViews.load(historyPath);
-        if (view.snapshot() == null) {
+        var result = TaskViews.load(historyPath);
+        if (result instanceof TaskLoadResult.EmptyHistory) {
             System.out.println("No verified task history.");
             return;
         }
-
+        TaskView view = ((TaskLoadResult.Loaded) result).view();
         System.out.println("actions=" + view.snapshot().actions());
     }
 
     private void history(Path historyPath) {
-        TaskView view = TaskViews.load(historyPath);
+        var result = TaskViews.load(historyPath);
+        if (result instanceof TaskLoadResult.EmptyHistory empty) {
+            System.out.println("verified=" + empty.verifiedHistory());
+            System.out.println("decoded=" + empty.decodedEvents());
+            return;
+        }
+        TaskView view = ((TaskLoadResult.Loaded) result).view();
         System.out.println("verified=" + view.verifiedHistory());
         System.out.println("decoded=" + view.decodedEvents());
     }
@@ -72,28 +75,21 @@ public final class TaskCli {
         }
 
         String actionName = args[1];
-        TaskView view = TaskViews.load(historyPath);
-        if (view.snapshot() == null) {
+        try {
+            TaskEvent newEvent = TaskApplications.apply(historyPath, actionName);
+            var result = TaskViews.load(historyPath);
+            if (result instanceof TaskLoadResult.EmptyHistory) {
+                System.out.println("No verified task history.");
+                return;
+            }
+            TaskView updatedView = ((TaskLoadResult.Loaded) result).view();
+
+            System.out.println("appended=" + newEvent);
+            System.out.println("state=" + updatedView.snapshot().state());
+            System.out.println("nextMoves=" + updatedView.snapshot().nextMoves());
+        } catch (IllegalStateException e) {
             System.out.println("No verified task history.");
-            return;
         }
-
-        TaskAction selectedAction = view.snapshot().actions().stream()
-            .filter(action -> action.eventName().equals(actionName))
-            .findFirst()
-            .orElseThrow(() -> new IllegalArgumentException("unsupported action: " + actionName));
-
-        TaskEvent newEvent = actionAdapter.toEvent(
-            view.snapshot().state(),
-            List.of(selectedAction),
-            view.snapshot().state().id());
-
-        historyFile.append(historyPath, newEvent);
-
-        TaskView updatedView = TaskViews.load(historyPath);
-        System.out.println("appended=" + newEvent);
-        System.out.println("state=" + updatedView.snapshot().state());
-        System.out.println("nextMoves=" + updatedView.snapshot().nextMoves());
     }
 
     private Path historyPathFor(String[] args, String command) {
