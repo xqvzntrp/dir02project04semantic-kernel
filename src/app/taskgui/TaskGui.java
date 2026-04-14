@@ -10,7 +10,9 @@ import java.util.List;
 import java.util.stream.Collectors;
 import javax.swing.DefaultListModel;
 import javax.swing.JFrame;
+import javax.swing.JLabel;
 import javax.swing.JList;
+import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JSplitPane;
 import javax.swing.JTextArea;
@@ -21,7 +23,7 @@ import javax.swing.event.DocumentListener;
 
 public class TaskGui {
 
-    private final Path historyPath = Path.of("samples/eventchain/task-history.verified");
+    private final Path historyPath = Path.of("semantic-kernel", "samples", "eventchain", "task-history.verified");
 
     private JFrame frame;
     private JTextField input;
@@ -42,6 +44,7 @@ public class TaskGui {
         frame.setSize(800, 600);
 
         input = new JTextField();
+        input.setToolTipText("Type to filter available actions");
         listModel = new DefaultListModel<>();
         actionList = new JList<>(listModel);
 
@@ -51,16 +54,40 @@ public class TaskGui {
         historyArea = new JTextArea();
         historyArea.setEditable(false);
 
+        JLabel actionsLabel = new JLabel("Actions");
+        JLabel stateLabel = new JLabel("State");
+        JLabel historyLabel = new JLabel("History");
+
         frame.setLayout(new BorderLayout());
         frame.add(input, BorderLayout.NORTH);
 
+        JPanel actionsPanel = new JPanel(new BorderLayout());
+        actionsPanel.add(actionsLabel, BorderLayout.NORTH);
+        actionsPanel.add(new JScrollPane(actionList), BorderLayout.CENTER);
+
+        JPanel statePanel = new JPanel(new BorderLayout());
+        statePanel.add(stateLabel, BorderLayout.NORTH);
+        statePanel.add(new JScrollPane(stateArea), BorderLayout.CENTER);
+
         JSplitPane centerSplit = new JSplitPane(
             JSplitPane.HORIZONTAL_SPLIT,
-            new JScrollPane(actionList),
-            new JScrollPane(stateArea)
+            actionsPanel,
+            statePanel
         );
-        frame.add(centerSplit, BorderLayout.CENTER);
-        frame.add(new JScrollPane(historyArea), BorderLayout.SOUTH);
+        centerSplit.setResizeWeight(0.4);
+
+        JPanel historyPanel = new JPanel(new BorderLayout());
+        historyPanel.add(historyLabel, BorderLayout.NORTH);
+        historyPanel.add(new JScrollPane(historyArea), BorderLayout.CENTER);
+
+        JSplitPane verticalSplit = new JSplitPane(
+            JSplitPane.VERTICAL_SPLIT,
+            centerSplit,
+            historyPanel
+        );
+        verticalSplit.setResizeWeight(0.7);
+
+        frame.add(verticalSplit, BorderLayout.CENTER);
 
         wireInputFiltering();
         wireEnterToApply();
@@ -70,12 +97,26 @@ public class TaskGui {
     }
 
     private void refresh() {
-        TaskLoadResult result = TaskViews.load(historyPath);
+        final TaskLoadResult result;
+        try {
+            result = TaskViews.load(historyPath);
+        } catch (RuntimeException e) {
+            currentActions = List.of();
+            listModel.clear();
+            listModel.addElement("Unable to load actions.");
+            stateArea.setText("Error: " + e.getMessage());
+            historyArea.setText("historyPath=" + historyPath);
+            return;
+        }
 
         if (result instanceof TaskLoadResult.EmptyHistory empty) {
             currentActions = List.of();
             listModel.clear();
-            stateArea.setText("No verified task history.");
+            listModel.addElement("No actions available.");
+            stateArea.setText(
+                "No verified task history.\n\n"
+                    + "Type \"create <taskId>\" to create a new task."
+            );
             historyArea.setText(
                 "verified=" + empty.verifiedHistory() + "\n"
                     + "decoded=" + empty.decodedEvents()
@@ -125,12 +166,20 @@ public class TaskGui {
     private void filter(String text) {
         listModel.clear();
 
-        String lower = text.toLowerCase();
-        currentActions.stream()
-            .filter(action -> action.toLowerCase().contains(lower))
-            .forEach(listModel::addElement);
+        if (currentActions.isEmpty()) {
+            listModel.addElement("No actions available.");
+            return;
+        }
 
-        if (!listModel.isEmpty()) {
+        String lower = text.toLowerCase();
+        List<String> filtered = currentActions.stream()
+            .filter(action -> action.toLowerCase().contains(lower))
+            .collect(Collectors.toList());
+
+        if (filtered.isEmpty()) {
+            listModel.addElement("No matching actions.");
+        } else {
+            filtered.forEach(listModel::addElement);
             actionList.setSelectedIndex(0);
         }
     }
@@ -148,6 +197,20 @@ public class TaskGui {
     }
 
     private void applySelected() {
+        String text = input.getText().trim();
+        if (text.startsWith("create ")) {
+            String taskId = text.substring("create ".length()).trim();
+            try {
+                TaskApplications.create(historyPath, taskId);
+                input.setText("");
+                refresh();
+            } catch (Exception e) {
+                refresh();
+                stateArea.append("\n\nError: " + e.getMessage());
+            }
+            return;
+        }
+
         String selected = actionList.getSelectedValue();
         if (selected == null) {
             return;
@@ -158,7 +221,8 @@ public class TaskGui {
             input.setText("");
             refresh();
         } catch (Exception e) {
-            stateArea.setText("Error: " + e.getMessage());
+            refresh();
+            stateArea.append("\n\nError: " + e.getMessage());
         }
     }
 }

@@ -10,7 +10,7 @@ import task.domain.TaskEvent;
 
 public final class TaskCli {
 
-    private static final Path DEFAULT_HISTORY_PATH = Path.of("samples/eventchain/task-history.verified");
+    private static final Path DEFAULT_HISTORY_PATH = Path.of("semantic-kernel", "samples", "eventchain", "task-history.verified");
 
     public static void main(String[] args) throws IOException {
         new TaskCli().run(args);
@@ -26,12 +26,32 @@ public final class TaskCli {
         Path historyPath = historyPathFor(args, command);
 
         switch (command) {
+            case "create" -> create(args, historyPath);
             case "show" -> show(historyPath);
             case "next" -> next(historyPath);
             case "history" -> history(historyPath);
             case "apply" -> apply(args, historyPath);
             default -> printUsage();
         }
+    }
+
+    private void create(String[] args, Path historyPath) throws IOException {
+        if (args.length < 2) {
+            printUsage();
+            return;
+        }
+
+        String taskId = args[1];
+        TaskEvent newEvent = TaskApplications.create(historyPath, taskId);
+        var result = TaskViews.load(historyPath);
+        if (TaskCliSupport.isEmpty(result)) {
+            System.out.println("No verified task history.");
+            return;
+        }
+        TaskView view = TaskCliSupport.requireLoaded(result);
+        System.out.println("appended=" + newEvent);
+        System.out.println("state=" + view.snapshot().state());
+        System.out.println("nextMoves=" + view.snapshot().nextMoves());
     }
 
     private void show(Path historyPath) {
@@ -95,7 +115,7 @@ public final class TaskCli {
 
     private Path historyPathFor(String[] args, String command) {
         return switch (command) {
-            case "apply" -> args.length >= 3 ? Path.of(args[2]) : DEFAULT_HISTORY_PATH;
+            case "create", "apply" -> args.length >= 3 ? Path.of(args[2]) : DEFAULT_HISTORY_PATH;
             case "show", "next", "history" -> args.length >= 2 ? Path.of(args[1]) : DEFAULT_HISTORY_PATH;
             default -> DEFAULT_HISTORY_PATH;
         };
@@ -103,6 +123,7 @@ public final class TaskCli {
 
     private void printUsage() {
         System.out.println("Usage:");
+        System.out.println("  create <task-id> [history-file]");
         System.out.println("  show [history-file]");
         System.out.println("  next [history-file]");
         System.out.println("  history [history-file]");
