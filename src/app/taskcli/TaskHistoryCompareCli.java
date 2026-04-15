@@ -204,7 +204,7 @@ public final class TaskHistoryCompareCli {
             );
             System.out.println("Semantic equivalence: " + equivalence);
             if (result.relation() == app.historycompare.HistoryRelation.DIVERGED
-                && equivalence == HistoryEquivalence.SEMANTICALLY_EQUAL) {
+                && equivalence.isSemanticConvergence()) {
                 System.out.println("Note: Different histories converge to identical state and action surface.");
             }
             return;

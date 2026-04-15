@@ -24,6 +24,9 @@ public final class TaskHistoryAssertionsCli {
             if ("assert-repair-exists".equals(command) && args.length == 2) {
                 return runRepairExistsAgainstParent(Path.of(args[1]));
             }
+            if ("assert-repair-holds".equals(command) && args.length == 2) {
+                return runRepairHoldsAgainstParent(Path.of(args[1]));
+            }
 
             if (args.length != 3) {
                 printUsage();
@@ -37,6 +40,7 @@ public final class TaskHistoryAssertionsCli {
                 case "assert-converges" -> TaskHistoryAssertions.assertConverges(leftPath, rightPath);
                 case "assert-no-state-divergence" -> TaskHistoryAssertions.assertNoStateDivergence(leftPath, rightPath);
                 case "assert-repair-exists" -> TaskHistoryAssertions.assertRepairExists(leftPath, rightPath);
+                case "assert-repair-holds" -> TaskHistoryAssertions.assertRepairHolds(leftPath, rightPath);
                 case "assert-actions-equivalent" -> TaskHistoryAssertions.assertActionsEquivalent(leftPath, rightPath);
                 default -> {
                     printUsage();
@@ -47,6 +51,7 @@ public final class TaskHistoryAssertionsCli {
             if ("assert-converges".equals(command)
                 || "assert-no-state-divergence".equals(command)
                 || "assert-repair-exists".equals(command)
+                || "assert-repair-holds".equals(command)
                 || "assert-actions-equivalent".equals(command)) {
                 if (result.pass()) {
                     System.out.println("PASS: " + result.message());
@@ -74,12 +79,24 @@ public final class TaskHistoryAssertionsCli {
         return 1;
     }
 
+    private int runRepairHoldsAgainstParent(Path historyPath) throws IOException {
+        AssertionResult result = TaskHistoryAssertions.assertRepairHolds(historyPath);
+        if (result.pass()) {
+            System.out.println("PASS: " + result.message());
+            return 0;
+        }
+        System.out.println("FAIL: " + result.message());
+        return 1;
+    }
+
     private void printUsage() {
         System.out.println("Usage:");
         System.out.println("  java -cp out app.taskcli.TaskHistoryAssertionsCli assert-converges <left-history> <right-history>");
         System.out.println("  java -cp out app.taskcli.TaskHistoryAssertionsCli assert-no-state-divergence <left-history> <right-history>");
         System.out.println("  java -cp out app.taskcli.TaskHistoryAssertionsCli assert-repair-exists <history>");
         System.out.println("  java -cp out app.taskcli.TaskHistoryAssertionsCli assert-repair-exists <left-history> <right-history>");
+        System.out.println("  java -cp out app.taskcli.TaskHistoryAssertionsCli assert-repair-holds <history>");
+        System.out.println("  java -cp out app.taskcli.TaskHistoryAssertionsCli assert-repair-holds <left-history> <right-history>");
         System.out.println("  java -cp out app.taskcli.TaskHistoryAssertionsCli assert-actions-equivalent <left-history> <right-history>");
     }
 }

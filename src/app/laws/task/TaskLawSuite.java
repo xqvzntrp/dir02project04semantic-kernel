@@ -9,7 +9,10 @@ public final class TaskLawSuite {
             new TaskConvergesLaw(),
             new TaskNoStateDivergenceLaw(),
             new TaskRepairLaw(),
-            new TaskNonConvergentForkLaw()
+            new TaskNonConvergentForkLaw(),
+            new TaskStableFlowLaw(),
+            new TaskRepairMustHoldLaw(),
+            new TaskEquivalentOutcomeLaw()
         ));
     }
 }

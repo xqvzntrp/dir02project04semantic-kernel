@@ -35,8 +35,7 @@ public final class TimelineEquivalenceEvaluator {
                 i < commonPrefixLength
             );
 
-            if (firstSemanticMismatchIndex < 0 && equivalence != HistoryEquivalence.SEMANTICALLY_EQUAL
-                && equivalence != HistoryEquivalence.EXACT) {
+            if (firstSemanticMismatchIndex < 0 && !equivalence.isSemanticConvergence()) {
                 firstSemanticMismatchIndex = i + 1;
             }
 
@@ -53,7 +52,7 @@ public final class TimelineEquivalenceEvaluator {
                     analyze.apply(left.subList(0, i + 1)),
                     baseline
                 );
-                if (firstExtensionMismatchIndex < 0 && equivalence != HistoryEquivalence.SEMANTICALLY_EQUAL) {
+                if (firstExtensionMismatchIndex < 0 && !equivalence.isSemanticConvergence()) {
                     firstExtensionMismatchIndex = i + 1;
                 }
                 points.add(new TimelineEquivalencePoint(i + 1, TimelineSide.LEFT_ONLY, equivalence));
@@ -64,7 +63,7 @@ public final class TimelineEquivalenceEvaluator {
                     analyze.apply(right.subList(0, i + 1)),
                     baseline
                 );
-                if (firstExtensionMismatchIndex < 0 && equivalence != HistoryEquivalence.SEMANTICALLY_EQUAL) {
+                if (firstExtensionMismatchIndex < 0 && !equivalence.isSemanticConvergence()) {
                     firstExtensionMismatchIndex = i + 1;
                 }
                 points.add(new TimelineEquivalencePoint(i + 1, TimelineSide.RIGHT_ONLY, equivalence));
@@ -91,12 +90,12 @@ public final class TimelineEquivalenceEvaluator {
                 leftSuccess.summary(),
                 rightSuccess.summary()
             );
-            if (exactPrefix && equivalence == HistoryEquivalence.SEMANTICALLY_EQUAL) {
+            if (exactPrefix && equivalence == HistoryEquivalence.STATE_AND_ACTIONS_EQUAL) {
                 return HistoryEquivalence.EXACT;
             }
             return equivalence;
         }
-        return HistoryEquivalence.DIFFERENT;
+        return HistoryEquivalence.NONE;
     }
 
     private static <S, A> HistoryEquivalence extensionEquivalence(
@@ -104,7 +103,7 @@ public final class TimelineEquivalenceEvaluator {
         HistoryAnalysisResult<S, A> baseline
     ) {
         if (baseline == null) {
-            return HistoryEquivalence.DIFFERENT;
+            return HistoryEquivalence.NONE;
         }
         return equivalenceAtPrefix(extension, baseline, false);
     }

@@ -1,0 +1,3 @@
+# sequence|eventType|field=value
+1|ApprovalSubmitted|approvalId=approval-300
+2|ApprovalRejected|approvalId=approval-300

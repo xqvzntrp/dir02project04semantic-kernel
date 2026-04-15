@@ -15,7 +15,7 @@ public final class HistoryEquivalenceEvaluator {
         boolean sameActions = normalizedActions(left).equals(normalizedActions(right));
 
         if (sameState && sameActions) {
-            return HistoryEquivalence.SEMANTICALLY_EQUAL;
+            return HistoryEquivalence.STATE_AND_ACTIONS_EQUAL;
         }
         if (sameState) {
             return HistoryEquivalence.STATE_EQUAL_ONLY;
@@ -23,7 +23,7 @@ public final class HistoryEquivalenceEvaluator {
         if (sameActions) {
             return HistoryEquivalence.ACTIONS_EQUAL_ONLY;
         }
-        return HistoryEquivalence.DIFFERENT;
+        return HistoryEquivalence.NONE;
     }
 
     public static <S, A> boolean sameState(HistorySnapshotSummary<S, A> left, HistorySnapshotSummary<S, A> right) {

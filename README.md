@@ -37,5 +37,7 @@ To add new behavior, follow the extension guide:
 
 See `EXTENDING.md`
 
+For how histories are compared once meaning has been derived, see `EQUIVALENCE.md`.
+
 It walks through the exact steps and points to the relevant domain files,
 including the projector, domain kernel, action adapter, and decoder boundary.

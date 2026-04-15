@@ -1,0 +1,6 @@
+# sequence|eventType|field=value
+1|TaskCreated|taskId=task-300
+2|TaskStarted|taskId=task-300
+3|TaskCompleted|taskId=task-300
+4|TaskReopened|taskId=task-300
+5|TaskCompleted|taskId=task-300
