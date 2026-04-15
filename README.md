@@ -30,3 +30,12 @@ The kernel has been validated against:
 
 At this stage, the kernel is intentionally "boring" and stable.
 Changes should only be made in response to new domain proofs that cannot be expressed cleanly.
+
+## Extending the System
+
+To add new behavior, follow the extension guide:
+
+See `EXTENDING.md`
+
+It walks through the exact steps and points to the relevant domain files,
+including the projector, domain kernel, action adapter, and decoder boundary.
