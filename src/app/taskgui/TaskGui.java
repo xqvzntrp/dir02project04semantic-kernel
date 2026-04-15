@@ -5,6 +5,7 @@ import app.taskapp.TaskLoadResult;
 import app.taskapp.TaskView;
 import app.taskapp.TaskViews;
 import java.awt.BorderLayout;
+import java.awt.GridLayout;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -12,16 +13,17 @@ import javax.swing.DefaultListModel;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JList;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
-import javax.swing.JSplitPane;
-import javax.swing.JTextArea;
 import javax.swing.JTextField;
 import javax.swing.SwingUtilities;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
+import semantic.kernel.ActionDescriptor;
+import task.domain.TaskActionAdapter;
 
-public class TaskGui {
+public final class TaskGui {
 
     private final Path historyPath = Path.of("semantic-kernel", "samples", "eventchain", "task-history.verified");
 
@@ -29,69 +31,51 @@ public class TaskGui {
     private JTextField input;
     private DefaultListModel<String> listModel;
     private JList<String> actionList;
-    private JTextArea stateArea;
-    private JTextArea historyArea;
+    private JLabel statusLabel;
+    private final TaskActionAdapter actionAdapter = new TaskActionAdapter();
 
-    private List<String> currentActions = List.of();
+    private List<ActionDescriptor> currentDescriptors = List.of();
+    private List<ActionDescriptor> visibleDescriptors = List.of();
 
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> new TaskGui().createAndShow());
     }
 
     private void createAndShow() {
-        frame = new JFrame("Task Command Palette");
+        frame = new JFrame("Task Action Filter");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        frame.setSize(800, 600);
+        frame.setSize(800, 260);
 
         input = new JTextField();
-        input.setToolTipText("Type to filter available actions");
+        input.setToolTipText("Type to filter actions. Press Enter to apply the selected action.");
         listModel = new DefaultListModel<>();
         actionList = new JList<>(listModel);
-
-        stateArea = new JTextArea();
-        stateArea.setEditable(false);
-
-        historyArea = new JTextArea();
-        historyArea.setEditable(false);
-
-        JLabel actionsLabel = new JLabel("Actions");
-        JLabel stateLabel = new JLabel("State");
-        JLabel historyLabel = new JLabel("History");
-
-        frame.setLayout(new BorderLayout());
-        frame.add(input, BorderLayout.NORTH);
+        statusLabel = new JLabel("Loading actions...");
 
         JPanel actionsPanel = new JPanel(new BorderLayout());
-        actionsPanel.add(actionsLabel, BorderLayout.NORTH);
+        actionsPanel.add(new JLabel("Available Options"), BorderLayout.NORTH);
         actionsPanel.add(new JScrollPane(actionList), BorderLayout.CENTER);
 
-        JPanel statePanel = new JPanel(new BorderLayout());
-        statePanel.add(stateLabel, BorderLayout.NORTH);
-        statePanel.add(new JScrollPane(stateArea), BorderLayout.CENTER);
-
-        JSplitPane centerSplit = new JSplitPane(
-            JSplitPane.HORIZONTAL_SPLIT,
-            actionsPanel,
-            statePanel
+        JPanel inputPanel = new JPanel(new BorderLayout(0, 8));
+        inputPanel.add(new JLabel("Input"), BorderLayout.NORTH);
+        inputPanel.add(input, BorderLayout.CENTER);
+        inputPanel.add(
+            new JLabel("Type to filter. Use \"create <taskId>\" or press Enter on a selection."),
+            BorderLayout.SOUTH
         );
-        centerSplit.setResizeWeight(0.4);
 
-        JPanel historyPanel = new JPanel(new BorderLayout());
-        historyPanel.add(historyLabel, BorderLayout.NORTH);
-        historyPanel.add(new JScrollPane(historyArea), BorderLayout.CENTER);
+        JPanel gridPanel = new JPanel(new GridLayout(1, 2, 12, 0));
+        gridPanel.add(actionsPanel);
+        gridPanel.add(inputPanel);
 
-        JSplitPane verticalSplit = new JSplitPane(
-            JSplitPane.VERTICAL_SPLIT,
-            centerSplit,
-            historyPanel
-        );
-        verticalSplit.setResizeWeight(0.7);
-
-        frame.add(verticalSplit, BorderLayout.CENTER);
+        frame.setLayout(new BorderLayout());
+        frame.add(gridPanel, BorderLayout.CENTER);
+        frame.add(statusLabel, BorderLayout.SOUTH);
 
         wireInputFiltering();
         wireEnterToApply();
 
+        frame.setLocationByPlatform(true);
         frame.setVisible(true);
         refresh();
     }
@@ -101,46 +85,41 @@ public class TaskGui {
         try {
             result = TaskViews.load(historyPath);
         } catch (RuntimeException e) {
-            currentActions = List.of();
+            currentDescriptors = List.of();
+            visibleDescriptors = List.of();
             listModel.clear();
             listModel.addElement("Unable to load actions.");
-            stateArea.setText("Error: " + e.getMessage());
-            historyArea.setText("historyPath=" + historyPath);
+            actionList.clearSelection();
+            statusLabel.setText("Error loading actions from " + historyPath + ": " + e.getMessage());
+            actionList.setToolTipText(null);
             return;
         }
 
         if (result instanceof TaskLoadResult.EmptyHistory empty) {
-            currentActions = List.of();
+            currentDescriptors = List.of();
+            visibleDescriptors = List.of();
             listModel.clear();
             listModel.addElement("No actions available.");
-            stateArea.setText(
-                "No verified task history.\n\n"
-                    + "Type \"create <taskId>\" to create a new task."
+            actionList.clearSelection();
+            statusLabel.setText(
+                "No verified task history. Type \"create <taskId>\" to create one. verified="
+                    + empty.verifiedHistory().size()
+                    + ", decoded="
+                    + empty.decodedEvents().size()
             );
-            historyArea.setText(
-                "verified=" + empty.verifiedHistory() + "\n"
-                    + "decoded=" + empty.decodedEvents()
-            );
+            actionList.setToolTipText(null);
             return;
         }
 
         TaskView view = ((TaskLoadResult.Loaded) result).view();
-
-        currentActions = view.snapshot().actions().stream()
-            .map(action -> action.eventName())
-            .collect(Collectors.toList());
+        currentDescriptors = actionAdapter.describe(view.snapshot().actions());
 
         filter(input.getText());
-
-        stateArea.setText(
-            "Task ID: " + view.snapshot().state().id() + "\n"
-                + "Status: " + view.snapshot().state().status() + "\n\n"
-                + "Next Moves:\n" + view.snapshot().nextMoves()
-        );
-
-        historyArea.setText(
-            "verified=" + view.verifiedHistory() + "\n\n"
-                + "decoded=" + view.decodedEvents()
+        statusLabel.setText(
+            "Task ID: " + view.snapshot().state().id()
+                + " | Status: " + view.snapshot().state().status()
+                + " | Actions: "
+                + currentDescriptors.stream().map(ActionDescriptor::name).collect(Collectors.toList())
         );
     }
 
@@ -166,26 +145,42 @@ public class TaskGui {
     private void filter(String text) {
         listModel.clear();
 
-        if (currentActions.isEmpty()) {
+        if (currentDescriptors.isEmpty()) {
+            visibleDescriptors = List.of();
             listModel.addElement("No actions available.");
+            actionList.clearSelection();
+            actionList.setToolTipText(null);
             return;
         }
 
         String lower = text.toLowerCase();
-        List<String> filtered = currentActions.stream()
-            .filter(action -> action.toLowerCase().contains(lower))
+        List<ActionDescriptor> filtered = currentDescriptors.stream()
+            .filter(action -> matchesFilter(action, lower))
             .collect(Collectors.toList());
 
         if (filtered.isEmpty()) {
+            visibleDescriptors = List.of();
             listModel.addElement("No matching actions.");
-        } else {
-            filtered.forEach(listModel::addElement);
-            actionList.setSelectedIndex(0);
+            actionList.clearSelection();
+            actionList.setToolTipText(null);
+            return;
         }
+
+        visibleDescriptors = filtered;
+        filtered.stream()
+            .map(this::displayText)
+            .forEach(listModel::addElement);
+        actionList.setSelectedIndex(0);
+        updateSelectionHelp();
     }
 
     private void wireEnterToApply() {
         input.addActionListener(e -> applySelected());
+        actionList.addListSelectionListener(e -> {
+            if (!e.getValueIsAdjusting()) {
+                updateSelectionHelp();
+            }
+        });
         actionList.addKeyListener(new java.awt.event.KeyAdapter() {
             @Override
             public void keyPressed(java.awt.event.KeyEvent e) {
@@ -206,23 +201,54 @@ public class TaskGui {
                 refresh();
             } catch (Exception e) {
                 refresh();
-                stateArea.append("\n\nError: " + e.getMessage());
+                showError(e);
             }
             return;
         }
 
-        String selected = actionList.getSelectedValue();
-        if (selected == null) {
+        int index = actionList.getSelectedIndex();
+        if (index < 0 || index >= visibleDescriptors.size()) {
             return;
         }
+        ActionDescriptor selected = visibleDescriptors.get(index);
 
         try {
-            TaskApplications.apply(historyPath, selected);
+            TaskApplications.apply(historyPath, selected.name());
             input.setText("");
             refresh();
         } catch (Exception e) {
             refresh();
-            stateArea.append("\n\nError: " + e.getMessage());
+            showError(e);
         }
+    }
+
+    private void showError(Exception e) {
+        JOptionPane.showMessageDialog(
+            frame,
+            e.getMessage(),
+            "Task Action Error",
+            JOptionPane.ERROR_MESSAGE
+        );
+    }
+
+    private boolean matchesFilter(ActionDescriptor action, String text) {
+        return action.name().toLowerCase().contains(text)
+            || action.label().toLowerCase().contains(text)
+            || action.help().toLowerCase().contains(text);
+    }
+
+    private String displayText(ActionDescriptor action) {
+        return action.label() + " (" + action.name() + ")";
+    }
+
+    private void updateSelectionHelp() {
+        int index = actionList.getSelectedIndex();
+        if (index < 0 || index >= visibleDescriptors.size()) {
+            actionList.setToolTipText(null);
+            return;
+        }
+        ActionDescriptor descriptor = visibleDescriptors.get(index);
+        actionList.setToolTipText(descriptor.help());
+        statusLabel.setText(descriptor.label() + " | " + descriptor.help());
     }
 }

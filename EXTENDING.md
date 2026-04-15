@@ -12,6 +12,20 @@ To add behavior, add an event and teach the domain what it means.
 
 This always happens through the same sequence.
 
+## Why This Works
+
+This system treats truth as history.
+
+Because state is derived, new behavior cannot be added by mutating state or
+scattering logic across UI, services, or storage. Instead, behavior is
+introduced by defining new events and teaching the domain what they mean.
+
+In practice, this means extending the system feels like extending a language:
+
+- events are the vocabulary
+- projectors define meaning over history
+- rules define what can happen next
+
 ## Extension Steps
 
 ### 1. Add a Domain Event

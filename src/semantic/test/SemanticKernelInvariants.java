@@ -34,6 +34,7 @@ public final class SemanticKernelInvariants {
         approvalBranchingProofReturnsBothNextMoves();
         terminalStatesYieldEmptyMovesAndActions();
         projectorErrorsRemainDomainOwned();
+        actionRequestsAreValidatedAtTheAdapterBoundary();
 
         System.out.println("Semantic kernel invariants passed.");
     }
@@ -116,6 +117,24 @@ public final class SemanticKernelInvariants {
                 "task must be created before other events",
                 expected.getMessage(),
                 "projector error");
+        }
+    }
+
+    private static void actionRequestsAreValidatedAtTheAdapterBoundary() {
+        TaskActionAdapter adapter = new TaskActionAdapter();
+        SemanticSnapshot<TaskState, NextMove<TaskStatus>, TaskAction> snapshot =
+            taskKernel().analyze(List.of(
+                new TaskCreated("task-1"),
+                new TaskStarted("task-1")));
+
+        try {
+            adapter.toEvent(snapshot.state(), snapshot.actions(), "reopen");
+            throw new AssertionError("expected adapter to reject unsupported action request");
+        } catch (IllegalArgumentException expected) {
+            assertEquals(
+                "unsupported action request: reopen",
+                expected.getMessage(),
+                "adapter boundary error");
         }
     }
 
