@@ -1,0 +1,5 @@
+# sequence|eventType|field=value
+1|TaskCreated|taskId=task-fork
+2|TaskStarted|taskId=task-fork
+3|TaskCompleted|taskId=task-fork
+4|TaskReopened|taskId=task-fork

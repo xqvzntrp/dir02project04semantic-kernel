@@ -2,6 +2,7 @@ package app.platformcli;
 
 import app.taskcli.TaskCli;
 
+import java.io.IOException;
 import java.util.Arrays;
 
 /**
@@ -97,7 +98,7 @@ public final class PlatformCli {
      * This preserves the architecture:
      * history -> verified field events -> task decoder -> semantic-kernel -> output
      */
-    private static int delegateToTaskCli(String expectedCommand, String[] args) {
+    private static int delegateToTaskCli(String expectedCommand, String[] args) throws IOException {
         String[] forwarded;
 
         if (!args[0].equals(expectedCommand)) {

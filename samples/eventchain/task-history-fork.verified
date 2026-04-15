@@ -1,4 +1,7 @@
-# sequence|eventType|field=value
+# forked-from: task-history.verified
+# forked-at-index: 22
+# forked-at: 2026-04-15T00:39:12Z
+
 1|TaskCreated|taskId=task-1
 2|TaskStarted|taskId=task-1
 3|TaskCompleted|taskId=task-1
@@ -21,3 +24,4 @@
 20|TaskReopened|taskId=task-1
 21|TaskCompleted|taskId=task-1
 22|TaskReopened|taskId=task-1
+23|TaskCompleted|taskId=task-1

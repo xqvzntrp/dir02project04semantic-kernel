@@ -1,17 +1,18 @@
-package app.taskgui;
+package app.approvalgui;
 
-import app.taskapp.TaskExplorations;
-import app.taskapp.TaskApplications;
-import app.taskapp.TaskLoadResult;
-import app.taskapp.TaskSimulationTrace;
-import app.taskapp.TaskTimeline;
-import app.taskapp.TaskTimelineEntry;
-import app.taskapp.TaskView;
-import app.taskapp.TaskViews;
-import app.taskcli.TaskHistoryFile;
+import app.approvalapp.ApprovalApplications;
+import app.approvalapp.ApprovalExplorations;
+import app.approvalapp.ApprovalLoadResult;
+import app.approvalapp.ApprovalSimulationTrace;
+import app.approvalapp.ApprovalTimeline;
+import app.approvalapp.ApprovalTimelineEntry;
+import app.approvalapp.ApprovalView;
+import app.approvalapp.ApprovalViews;
+import app.approvalcli.ApprovalHistoryFile;
+import approval.domain.ApprovalActionAdapter;
 import java.awt.BorderLayout;
-import java.awt.FlowLayout;
 import java.awt.Dimension;
+import java.awt.FlowLayout;
 import java.awt.event.ActionEvent;
 import java.nio.file.Path;
 import java.time.Instant;
@@ -21,7 +22,6 @@ import java.util.stream.Collectors;
 import javax.swing.JButton;
 import javax.swing.DefaultListModel;
 import javax.swing.JFrame;
-import javax.swing.JButton;
 import javax.swing.JFileChooser;
 import javax.swing.JLabel;
 import javax.swing.JList;
@@ -33,15 +33,14 @@ import javax.swing.SwingUtilities;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import semantic.kernel.ActionDescriptor;
-import task.domain.TaskActionAdapter;
 
-public final class TaskGui {
+public final class ApprovalGui {
 
     private static final Path DEFAULT_HISTORY_PATH = Path.of(
         "semantic-kernel",
         "samples",
         "eventchain",
-        "task-history.verified"
+        "approval-history.verified"
     );
 
     private Path historyPath;
@@ -65,10 +64,10 @@ public final class TaskGui {
     private JButton addStepButton;
     private JButton undoStepButton;
     private JButton clearSimulationButton;
-    private final TaskActionAdapter actionAdapter = new TaskActionAdapter();
+    private final ApprovalActionAdapter actionAdapter = new ApprovalActionAdapter();
 
-    private TaskView currentView;
-    private TaskTimeline currentTimeline;
+    private ApprovalView currentView;
+    private ApprovalTimeline currentTimeline;
     private List<ActionDescriptor> currentDescriptors = List.of();
     private List<ActionDescriptor> visibleDescriptors = List.of();
     private final List<String> simulatedActionNames = new ArrayList<>();
@@ -76,15 +75,15 @@ public final class TaskGui {
 
     public static void main(String[] args) {
         Path history = args.length > 0 ? Path.of(args[0]) : DEFAULT_HISTORY_PATH;
-        SwingUtilities.invokeLater(() -> new TaskGui(history).createAndShow());
+        SwingUtilities.invokeLater(() -> new ApprovalGui(history).createAndShow());
     }
 
-    public TaskGui(Path historyPath) {
+    public ApprovalGui(Path historyPath) {
         this.historyPath = historyPath;
     }
 
     private void createAndShow() {
-        frame = new JFrame("Task Semantic Explorer");
+        frame = new JFrame("Approval Semantic Explorer");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.setSize(1200, 420);
 
@@ -125,7 +124,7 @@ public final class TaskGui {
         inputPanel.add(new JLabel("Input"), BorderLayout.NORTH);
         inputPanel.add(input, BorderLayout.CENTER);
         inputPanel.add(
-            new JLabel("Type to filter. Use \"create <taskId>\" or press Enter on a selection at the live tip."),
+            new JLabel("Type to filter. Use \"submit <approvalId>\" or press Enter on a selection at the live tip."),
             BorderLayout.SOUTH
         );
 
@@ -172,9 +171,9 @@ public final class TaskGui {
     }
 
     private void refresh() {
-        final TaskLoadResult result;
+        final ApprovalLoadResult result;
         try {
-            result = TaskViews.load(historyPath);
+            result = ApprovalViews.load(historyPath);
         } catch (RuntimeException e) {
             currentView = null;
             currentTimeline = null;
@@ -200,7 +199,7 @@ public final class TaskGui {
             return;
         }
 
-        if (result instanceof TaskLoadResult.EmptyHistory empty) {
+        if (result instanceof ApprovalLoadResult.EmptyHistory empty) {
             currentView = null;
             currentTimeline = null;
             selectedTimelineIndex = -1;
@@ -212,15 +211,15 @@ public final class TaskGui {
             simulatedPathModel.clear();
             previewModel.clear();
             listModel.addElement("No actions available.");
-            simulatedPathModel.addElement("Create a task to start exploring.");
-            previewModel.addElement("Create a task to start exploring.");
+            simulatedPathModel.addElement("Submit an approval to start exploring.");
+            previewModel.addElement("Submit an approval to start exploring.");
             actionList.clearSelection();
             timelineList.clearSelection();
-            currentStateLabel.setText("No task state yet");
+            currentStateLabel.setText("No approval state yet");
             simulatedPathLabel.setText("Simulated path");
             previewStateLabel.setText("Preview unavailable");
             statusLabel.setText(
-                "No verified task history. Type \"create <taskId>\" to create one. verified="
+                "No verified approval history. Type \"submit <approvalId>\" to create one. verified="
                     + empty.verifiedHistory().size()
                     + ", decoded="
                     + empty.decodedEvents().size()
@@ -230,8 +229,8 @@ public final class TaskGui {
             return;
         }
 
-        currentView = ((TaskLoadResult.Loaded) result).view();
-        currentTimeline = TaskExplorations.timeline(currentView);
+        currentView = ((ApprovalLoadResult.Loaded) result).view();
+        currentTimeline = ApprovalExplorations.timeline(currentView);
         populateTimeline();
         if (selectedTimelineIndex < 0 || selectedTimelineIndex >= currentTimeline.entries().size()) {
             selectedTimelineIndex = currentTimeline.entries().size() - 1;
@@ -286,9 +285,7 @@ public final class TaskGui {
         }
 
         visibleDescriptors = filtered;
-        filtered.stream()
-            .map(this::displayText)
-            .forEach(listModel::addElement);
+        filtered.stream().map(this::displayText).forEach(listModel::addElement);
         actionList.setSelectedIndex(0);
         updateSelectionHelp();
         updatePreview();
@@ -350,7 +347,7 @@ public final class TaskGui {
 
     private void handleEnter(ActionEvent event) {
         String text = input.getText().trim();
-        if (text.startsWith("create ")) {
+        if (text.startsWith("submit ")) {
             applySelected();
             return;
         }
@@ -363,10 +360,10 @@ public final class TaskGui {
 
     private void applySelected() {
         String text = input.getText().trim();
-        if (text.startsWith("create ")) {
-            String taskId = text.substring("create ".length()).trim();
+        if (text.startsWith("submit ")) {
+            String approvalId = text.substring("submit ".length()).trim();
             try {
-                TaskApplications.create(historyPath, taskId);
+                ApprovalApplications.submit(historyPath, approvalId);
                 input.setText("");
                 refresh();
             } catch (Exception e) {
@@ -387,7 +384,7 @@ public final class TaskGui {
         ActionDescriptor selected = visibleDescriptors.get(index);
 
         try {
-            TaskApplications.apply(historyPath, selected.name());
+            ApprovalApplications.apply(historyPath, selected.name());
             input.setText("");
             refresh();
         } catch (Exception e) {
@@ -400,7 +397,7 @@ public final class TaskGui {
         JOptionPane.showMessageDialog(
             frame,
             e.getMessage(),
-            "Task Action Error",
+            "Approval Action Error",
             JOptionPane.ERROR_MESSAGE
         );
     }
@@ -447,8 +444,8 @@ public final class TaskGui {
 
         Path target = chooser.getSelectedFile().toPath();
         try {
-            TaskSimulationTrace trace = currentSimulationTrace();
-            new TaskHistoryFile().writeAll(target, trace.fullEvents(), currentLineageMetadata(trace));
+            ApprovalSimulationTrace trace = currentSimulationTrace();
+            new ApprovalHistoryFile().writeAll(target, trace.fullEvents(), currentLineageMetadata(trace));
             int openResult = JOptionPane.showConfirmDialog(
                 frame,
                 "Saved simulated history to " + target + ". Open it now?",
@@ -463,9 +460,9 @@ public final class TaskGui {
         }
     }
 
-    private TaskHistoryFile.LineageMetadata currentLineageMetadata(TaskSimulationTrace trace) {
+    private ApprovalHistoryFile.LineageMetadata currentLineageMetadata(ApprovalSimulationTrace trace) {
         String sourceName = historyPath.getFileName() != null ? historyPath.getFileName().toString() : historyPath.toString();
-        return new TaskHistoryFile.LineageMetadata(
+        return new ApprovalHistoryFile.LineageMetadata(
             sourceName,
             trace.baseEvents().size(),
             Instant.now()
@@ -494,7 +491,7 @@ public final class TaskGui {
 
     private void populateTimeline() {
         timelineModel.clear();
-        for (TaskTimelineEntry entry : currentTimeline.entries()) {
+        for (ApprovalTimelineEntry entry : currentTimeline.entries()) {
             timelineModel.addElement(timelineText(entry));
         }
     }
@@ -510,8 +507,8 @@ public final class TaskGui {
             return;
         }
 
-        TaskTimelineEntry entry = currentTimeline.at(selectedTimelineIndex);
-        TaskSimulationTrace trace = currentSimulationTrace();
+        ApprovalTimelineEntry entry = currentTimeline.at(selectedTimelineIndex);
+        ApprovalSimulationTrace trace = currentSimulationTrace();
         currentDescriptors = actionAdapter.describe(trace.finalSnapshot().actions());
         currentStateLabel.setText(
             "At step " + (entry.eventIndex() + 1)
@@ -545,7 +542,7 @@ public final class TaskGui {
         try {
             List<String> previewActions = new ArrayList<>(simulatedActionNames);
             previewActions.add(selected.name());
-            TaskSimulationTrace preview = TaskExplorations.simulationTrace(currentView, selectedTimelineIndex, previewActions);
+            ApprovalSimulationTrace preview = ApprovalExplorations.simulationTrace(currentView, selectedTimelineIndex, previewActions);
             List<ActionDescriptor> previewDescriptors = actionAdapter.describe(preview.finalSnapshot().actions());
             previewStateLabel.setText(
                 "Preview after " + selected.label()
@@ -569,14 +566,14 @@ public final class TaskGui {
         return currentTimeline != null && selectedTimelineIndex == currentTimeline.entries().size() - 1;
     }
 
-    private TaskSimulationTrace currentSimulationTrace() {
+    private ApprovalSimulationTrace currentSimulationTrace() {
         if (currentView == null || currentTimeline == null || selectedTimelineIndex < 0) {
             throw new IllegalStateException("No current simulation trace is available");
         }
-        return TaskExplorations.simulationTrace(currentView, selectedTimelineIndex, simulatedActionNames);
+        return ApprovalExplorations.simulationTrace(currentView, selectedTimelineIndex, simulatedActionNames);
     }
 
-    private void updateSimulationPath(TaskSimulationTrace trace) {
+    private void updateSimulationPath(ApprovalSimulationTrace trace) {
         simulatedPathModel.clear();
         simulatedPathLabel.setText("Simulated path (" + trace.steps().size() + " step" + (trace.steps().size() == 1 ? "" : "s") + ")");
         if (trace.steps().isEmpty()) {
@@ -611,7 +608,7 @@ public final class TaskGui {
         openHistoryButton.setEnabled(true);
     }
 
-    private String timelineText(TaskTimelineEntry entry) {
+    private String timelineText(ApprovalTimelineEntry entry) {
         return (entry.eventIndex() + 1)
             + ". "
             + entry.event().getClass().getSimpleName()
@@ -621,12 +618,12 @@ public final class TaskGui {
 
     private void updateWindowTitle() {
         if (frame != null) {
-            frame.setTitle("Task Semantic Explorer - " + historyPath);
+            frame.setTitle("Approval Semantic Explorer - " + historyPath);
         }
     }
 
     private Path suggestForkPath() {
-        String fileName = historyPath.getFileName() == null ? "task-history.verified" : historyPath.getFileName().toString();
+        String fileName = historyPath.getFileName() == null ? "approval-history.verified" : historyPath.getFileName().toString();
         String suggestedName = fileName.endsWith(".verified")
             ? fileName.substring(0, fileName.length() - ".verified".length()) + "-fork.verified"
             : fileName + "-fork.verified";

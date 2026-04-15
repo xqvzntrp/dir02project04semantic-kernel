@@ -1,5 +1,9 @@
-package app.taskcli;
+package app.approvalcli;
 
+import approval.domain.ApprovalEvent;
+import approval.domain.Approved;
+import approval.domain.Rejected;
+import approval.domain.Submitted;
 import integration.eventchain.VerifiedFieldEvent;
 import integration.eventchain.VerifiedFieldEventSource;
 import java.io.IOException;
@@ -9,13 +13,8 @@ import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.List;
-import task.domain.TaskCompleted;
-import task.domain.TaskCreated;
-import task.domain.TaskEvent;
-import task.domain.TaskReopened;
-import task.domain.TaskStarted;
 
-public final class TaskHistoryFile {
+public final class ApprovalHistoryFile {
 
     public record LineageMetadata(
         String forkedFrom,
@@ -44,7 +43,7 @@ public final class TaskHistoryFile {
         return source.load(historyPath);
     }
 
-    public void append(Path historyPath, TaskEvent event) throws IOException {
+    public void append(Path historyPath, ApprovalEvent event) throws IOException {
         List<VerifiedFieldEvent> existing = load(historyPath);
         long nextSequence = existing.stream()
             .mapToLong(VerifiedFieldEvent::sequence)
@@ -61,14 +60,15 @@ public final class TaskHistoryFile {
         Files.writeString(
             historyPath,
             formatLine(nextSequence, event),
-            StandardOpenOption.APPEND);
+            StandardOpenOption.APPEND
+        );
     }
 
-    public void writeAll(Path historyPath, List<TaskEvent> events) throws IOException {
+    public void writeAll(Path historyPath, List<ApprovalEvent> events) throws IOException {
         writeAll(historyPath, events, null);
     }
 
-    public void writeAll(Path historyPath, List<TaskEvent> events, LineageMetadata lineageMetadata) throws IOException {
+    public void writeAll(Path historyPath, List<ApprovalEvent> events, LineageMetadata lineageMetadata) throws IOException {
         if (historyPath.getParent() != null) {
             Files.createDirectories(historyPath.getParent());
         }
@@ -86,23 +86,20 @@ public final class TaskHistoryFile {
         Files.write(historyPath, lines, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
     }
 
-    private String formatLine(long sequence, TaskEvent event) {
-        return sequence + "|" + eventType(event) + "|taskId=" + event.taskId() + System.lineSeparator();
+    private String formatLine(long sequence, ApprovalEvent event) {
+        return sequence + "|" + eventType(event) + "|approvalId=" + event.approvalId() + System.lineSeparator();
     }
 
-    private String eventType(TaskEvent event) {
-        if (event instanceof TaskCreated) {
-            return "TaskCreated";
+    private String eventType(ApprovalEvent event) {
+        if (event instanceof Submitted) {
+            return "ApprovalSubmitted";
         }
-        if (event instanceof TaskStarted) {
-            return "TaskStarted";
+        if (event instanceof Approved) {
+            return "ApprovalApproved";
         }
-        if (event instanceof TaskCompleted) {
-            return "TaskCompleted";
+        if (event instanceof Rejected) {
+            return "ApprovalRejected";
         }
-        if (event instanceof TaskReopened) {
-            return "TaskReopened";
-        }
-        throw new IllegalArgumentException("unsupported task event: " + event.getClass().getName());
+        throw new IllegalArgumentException("unsupported approval event: " + event.getClass().getName());
     }
 }

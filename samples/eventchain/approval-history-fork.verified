@@ -1,0 +1,6 @@
+# forked-from: approval-history.verified
+# forked-at-index: 1
+# forked-at: 2026-04-15T00:39:12Z
+
+1|ApprovalSubmitted|approvalId=approval-1
+2|ApprovalApproved|approvalId=approval-1
