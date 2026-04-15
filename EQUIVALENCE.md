@@ -26,6 +26,7 @@ Observed in current domains:
 
 - `preservesState()` implies `preservesActions()`
 - `preservesActions()` does not imply `preservesState()`
+- terminal states may differ in state while sharing an identical empty action surface
 
 ## Convergence
 
@@ -57,6 +58,11 @@ It holds as long as:
 - rules operate only on derived state
 - no external context (time, permissions, environment) influences action availability
 - projectors fully capture all information required for rule evaluation
+
+In domains with terminal states, distinct states may also share an identical
+empty action surface because no outgoing transitions remain. This yields
+`ACTIONS_EQUAL_ONLY`, not semantic convergence: terminal states can be
+operationally indistinguishable while remaining semantically distinct in state.
 
 ## Usage
 

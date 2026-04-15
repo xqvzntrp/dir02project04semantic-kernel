@@ -22,7 +22,7 @@ public final class TaskEventChainProof {
     public static void main(String[] args) throws IOException {
         VerifiedFieldEventSource source = new VerifiedFieldEventSource();
         List<VerifiedFieldEvent> verifiedEvents =
-            source.load(Path.of("samples/eventchain/task-history.verified"));
+            source.load(Path.of("semantic-kernel", "samples", "eventchain", "task-history.verified"));
 
         TaskEventChainDecoder decoder = new TaskEventChainDecoder();
         List<TaskEvent> taskEvents = decoder.decode(verifiedEvents);

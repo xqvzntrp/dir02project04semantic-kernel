@@ -1,0 +1,6 @@
+# forked-from: accounttask-operable-parent.verified
+# forked-at-index: 1
+# forked-at: 2026-04-15T00:00:00Z
+
+1|WorkItemOpenedForAccount|accountId=account-20|taskId=work-20
+2|AccountSuspendedAffectingWork|accountId=account-20|taskId=work-20

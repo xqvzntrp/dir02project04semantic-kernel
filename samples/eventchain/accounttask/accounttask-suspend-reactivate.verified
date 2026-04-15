@@ -1,0 +1,6 @@
+# sequence|eventType|field=value
+1|WorkItemOpenedForAccount|accountId=account-10|taskId=work-10
+2|AccountSuspendedAffectingWork|accountId=account-10|taskId=work-10
+3|AccountReactivatedAffectingWork|accountId=account-10|taskId=work-10
+4|WorkItemStartedForAccount|accountId=account-10|taskId=work-10
+5|WorkItemCompletedForAccount|accountId=account-10|taskId=work-10

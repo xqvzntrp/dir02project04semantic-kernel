@@ -50,6 +50,7 @@ Responsible for interpreting domain events.
 
 Full state and rule state are intentionally distinct.
 The projector derives full domain truth, while rule evaluation operates on a smaller decision surface extracted from that truth.
+The system also distinguishes semantic meaning from path quality; quality analysis operates on history structure and does not affect kernel interpretation.
 
 May know:
 
@@ -94,8 +95,10 @@ The architecture has been validated with:
 
 - Task domain proof: linear lifecycle
 - Approval domain proof: branching lifecycle
+- Account-task domain proof: composite state where account status constrains task actions
 - Semantic kernel invariants: determinism, terminal emptiness, projector-owned invalid history
 - Event Chain integration proof: verified field events decoded into task events and analyzed by the kernel
+- Account-task integration proof: verified field events decoded into composite account-task events and analyzed by the kernel
 
 ## Practical Boundaries
 
@@ -108,8 +111,14 @@ The architecture has been validated with:
 `src/approval/domain/`
 : minimal branching proof domain
 
+`src/accounttask/domain/`
+: composite proof domain for account-conditioned task flow
+
 `src/integration/eventchain/`
 : adapter and decoder boundary for verified history
 
 `samples/eventchain/`
 : sample verified inputs for boundary proofs
+
+`samples/eventchain/accounttask/`
+: sample verified inputs for composite account-conditioned work proofs

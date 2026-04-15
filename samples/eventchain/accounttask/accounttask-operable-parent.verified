@@ -1,0 +1,3 @@
+# sequence|eventType|field=value
+1|WorkItemOpenedForAccount|accountId=account-20|taskId=work-20
+2|WorkItemStartedForAccount|accountId=account-20|taskId=work-20

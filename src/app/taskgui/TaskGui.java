@@ -21,7 +21,6 @@ import java.util.stream.Collectors;
 import javax.swing.JButton;
 import javax.swing.DefaultListModel;
 import javax.swing.JFrame;
-import javax.swing.JButton;
 import javax.swing.JFileChooser;
 import javax.swing.JLabel;
 import javax.swing.JList;
